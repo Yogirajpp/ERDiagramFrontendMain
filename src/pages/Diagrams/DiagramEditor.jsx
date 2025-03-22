@@ -31,7 +31,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/useToast';
-import { diagramsAPI, entitiesAPI, relationshipsAPI } from '@/lib/api';
+import { attributesAPI, diagramsAPI, entitiesAPI, projectsAPI, relationshipsAPI } from '@/lib/api';
 import { PageLoading } from '@/components/common/Loading';
 import ErrorMessage from '@/components/common/ErrorMessage';
 
@@ -43,6 +43,7 @@ import AttributeForm from '@/components/diagrams/AttributeForm';
 import RelationshipForm from '@/components/diagrams/RelationshipForm';
 import DiagramSettings from '@/components/diagrams/DiagramSettings';
 import CodeViewer from '@/components/diagrams/CodeViewer';
+import BASE_URL from '@/lib/baseUrl';
 
 // Define node types
 const nodeTypes = {
@@ -85,9 +86,8 @@ const DiagramEditor = () => {
         
         // Get project info
         if (diagramData.projectId) {
-          const projectResponse = await fetch(`/api/projects/${diagramData.projectId}`);
-          const projectData = await projectResponse.json();
-          setProject(projectData.data);
+            const projectResponse = await projectsAPI.getById(diagramData.projectId);
+            setProject(projectResponse.data.data);
         }
         
         // Initialize nodes and edges
@@ -641,23 +641,11 @@ const DiagramEditor = () => {
       setLoading(true);
       
       // Create attribute in backend
-      const response = await fetch(`/api/attributes`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          entityId: selectedNode.id,
-          ...attributeData
-        }),
+      const response = await attributesAPI.create({
+        entityId: selectedNode.id,
+        ...attributeData
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to create attribute');
-      }
-      
-      const data = await response.json();
-      const newAttribute = data.data;
+      const newAttribute = response.data.data;
       
       // Update node data
       setNodes(nds =>
@@ -707,20 +695,8 @@ const DiagramEditor = () => {
       setLoading(true);
       
       // Update attribute in backend
-      const response = await fetch(`/api/attributes/${attributeId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(attributeData),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to update attribute');
-      }
-      
-      const data = await response.json();
-      const updatedAttribute = data.data;
+      const response = await attributesAPI.update(attributeId, attributeData);
+      const updatedAttribute = response.data.data;
       
       // Update node data
       setNodes(nds =>
@@ -775,13 +751,7 @@ const DiagramEditor = () => {
       setLoading(true);
       
       // Delete attribute from backend
-      const response = await fetch(`/api/attributes/${attributeId}`, {
-        method: 'DELETE',
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to delete attribute');
-      }
+      await attributesAPI.delete(attributeId);
       
       // Update node data
       setNodes(nds =>

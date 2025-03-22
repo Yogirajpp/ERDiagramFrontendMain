@@ -35,7 +35,7 @@ const ProtectedRoute = ({ children }) => {
       <div className="flex flex-col flex-1 overflow-hidden">
         <Header />
         <main className="flex-1 overflow-auto p-4">
-          <BreadcrumbComponent />
+          {/* <BreadcrumbComponent /> */}
           {children}
         </main>
       </div>
