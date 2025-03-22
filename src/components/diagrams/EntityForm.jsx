@@ -46,7 +46,8 @@ const EntityForm = ({
   // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
-    onUpdate(formData);
+    // Pass the entity ID and form data to onUpdate
+    onUpdate(entity.id, formData);
   };
 
   return (
@@ -138,10 +139,10 @@ const EntityForm = ({
                 if (attribute && onUpdateAttribute) {
                   // Call the update handler with the attribute data
                   // This would typically open an edit form
-                  onUpdateAttribute(attrId, attribute);
+                  onUpdateAttribute(entity.id, attrId, attribute);
                 }
               }}
-              onDelete={onDeleteAttribute}
+              onDelete={(attrId) => onDeleteAttribute(entity.id, attrId)}
             />
           </TabsContent>
           
