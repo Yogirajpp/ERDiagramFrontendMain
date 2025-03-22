@@ -15,7 +15,7 @@ import { DiagramProvider, useDiagram } from '@/contexts/DiagramContext';
  * Inner component that uses the DiagramContext
  */
 const DiagramEditorContent = () => {
-  const { loading, error } = useDiagram();
+  const { error } = useDiagram();
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Handle fullscreen toggle
@@ -63,16 +63,6 @@ const DiagramEditorContent = () => {
       <div className="flex-1 flex flex-col relative">
         <DiagramToolbar />
         <DiagramCanvas />
-        
-        {/* Loading overlay */}
-        {/* {loading && (
-          <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="flex flex-col items-center gap-2">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-              <p className="text-sm font-medium">Loading diagram...</p>
-            </div>
-          </div>
-        )} */}
       </div>
       <DiagramSidebar />
       {/* Fullscreen toggle button */}
