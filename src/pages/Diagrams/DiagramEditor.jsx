@@ -8,6 +8,7 @@ import ReactFlow, {
   useEdgesState,
   addEdge,
   Panel,
+  EdgeLabelRenderer,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { 
@@ -454,7 +455,7 @@ const DiagramEditor = () => {
   };
 
   // Create relationship
-  const handleCreateRelationship = async () => {
+  const handleCreateRelationship = () => {
     setSidebarMode('new-relationship');
   };
 
@@ -582,6 +583,9 @@ const DiagramEditor = () => {
           return edge;
         })
       );
+      
+      setSidebarMode('none');
+      setSelectedEdge(null);
       
       showSuccess('Relationship updated', 'Relationship has been updated successfully');
       
@@ -1182,71 +1186,22 @@ const DiagramEditor = () => {
             )}
             
             {sidebarMode === 'relationship' && selectedEdge && (
-              <div className="p-4">
-                <h2 className="text-lg font-semibold mb-4">Relationship</h2>
-                {/* Relationship editing form would go here */}
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="relationshipName">Name</Label>
-                    <Input
-                      id="relationshipName"
-                      placeholder="Relationship name"
-                      value={selectedEdge.data?.name || ''}
-                      onChange={(e) => setSelectedEdge({
-                        ...selectedEdge,
-                        data: { ...selectedEdge.data, name: e.target.value }
-                      })}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="relationshipType">Type</Label>
-                    <select
-                      id="relationshipType"
-                      className="w-full p-2 border rounded bg-background"
-                      value={selectedEdge.data?.type || 'one-to-many'}
-                      onChange={(e) => setSelectedEdge({
-                        ...selectedEdge,
-                        data: { ...selectedEdge.data, type: e.target.value }
-                      })}
-                    >
-                      <option value="one-to-one">One-to-One</option>
-                      <option value="one-to-many">One-to-Many</option>
-                      <option value="many-to-many">Many-to-Many</option>
-                    </select>
-                  </div>
-                  
-                  <div className="pt-4 space-x-2 flex justify-end">
-                    <Button
-                      variant="destructive"
-                      onClick={handleDeleteRelationship}
-                    >
-                      Delete
-                    </Button>
-                    <Button
-                      onClick={() => handleUpdateRelationship({
-                        name: selectedEdge.data?.name || 'Relationship',
-                        type: selectedEdge.data?.type || 'one-to-many',
-                        sourceId: selectedEdge.source,
-                        targetId: selectedEdge.target,
-                        // Include other properties as needed
-                      })}
-                    >
-                      Update
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              <RelationshipForm
+                relationship={selectedEdge}
+                diagramId={id}
+                nodes={nodes}
+                onSave={handleUpdateRelationship}
+                onCancel={() => setSidebarMode('none')}
+              />
             )}
             
             {sidebarMode === 'new-relationship' && (
-              <div className="p-4">
-                <h2 className="text-lg font-semibold mb-4">Create Relationship</h2>
-                {/* New relationship form would go here */}
-                <div className="space-y-4">
-                  {/* Content would depend on the relationship creation flow */}
-                </div>
-              </div>
+              <RelationshipForm
+                diagramId={id}
+                nodes={nodes}
+                onSave={handleCreateRelationshipSubmit}
+                onCancel={() => setSidebarMode('none')}
+              />
             )}
             
             {sidebarMode === 'settings' && (
@@ -1272,6 +1227,6 @@ const DiagramEditor = () => {
       </div>
     </div>
   );
-};
+}
 
 export default DiagramEditor;
