@@ -32,9 +32,24 @@ const DiagramToolbar = () => {
             Back to Project
           </Button>
           <Separator orientation="vertical" className="mx-2 h-6" />
-          <div>
-            <h1 className="text-lg font-semibold">{diagram?.name}</h1>
-            <p className="text-xs text-muted-foreground">{project?.name}</p>
+          {/* Tabs */}
+          <div className="px-4 py-2">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList>
+                <TabsTrigger value="diagram">
+                  <Edit className="h-4 w-4 mr-2" />
+                  Editor
+                </TabsTrigger>
+                <TabsTrigger value="preview">
+                  <Eye className="h-4 w-4 mr-2" />
+                  Preview
+                </TabsTrigger>
+                <TabsTrigger value="code">
+                  <Code className="h-4 w-4 mr-2" />
+                  MongoDB Schema
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
         </div>
         
@@ -58,25 +73,7 @@ const DiagramToolbar = () => {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="bg-gray-100 dark:bg-gray-800 px-4 py-2 border-b">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="diagram">
-              <Edit className="h-4 w-4 mr-2" />
-              Editor
-            </TabsTrigger>
-            <TabsTrigger value="preview">
-              <Eye className="h-4 w-4 mr-2" />
-              Preview
-            </TabsTrigger>
-            <TabsTrigger value="code">
-              <Code className="h-4 w-4 mr-2" />
-              MongoDB Schema
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
+      
     </>
   );
 };
