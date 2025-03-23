@@ -94,16 +94,19 @@ const DiagramSidebar = () => {
     </div>
   );
   
-  // Toggle sidebar button
+  // Toggle sidebar button when sidebar is closed
   const SidebarToggle = () => (
-    <Button
-      variant="ghost"
-      className="absolute right-4 top-20 p-1 h-8 w-8"
-      onClick={() => setSidebarOpen(true)}
-      aria-label="Open sidebar"
-    >
-      <ChevronsLeft className="h-4 w-4" />
-    </Button>
+    <div className="absolute right-0 top-1/2 transform -translate-y-1/2">
+      <Button
+        variant="secondary"
+        size="sm"
+        className="h-20 w-6 rounded-l-md rounded-r-none border border-r-0 shadow-sm flex items-center justify-center"
+        onClick={() => setSidebarOpen(true)}
+        aria-label="Open sidebar"
+      >
+        <ChevronsLeft className="h-4 w-4" />
+      </Button>
+    </div>
   );
 
   // If sidebar is closed, just show the toggle button
@@ -113,68 +116,74 @@ const DiagramSidebar = () => {
 
   return (
     <div className="w-80 border-l bg-white dark:bg-gray-900 overflow-y-auto relative">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute top-2 right-2"
-        onClick={() => setSidebarOpen(false)}
-        aria-label="Close sidebar"
-      >
-        <ChevronsRight className="h-4 w-4" />
-      </Button>
+      {/* Sidebar header with title and close button */}
+      <div className="border-b px-4 py-3 flex items-center justify-between sticky top-0 bg-white dark:bg-gray-900 z-10">
+        <h2 className="font-medium">Properties</h2>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0"
+          onClick={() => setSidebarOpen(false)}
+          aria-label="Close sidebar"
+        >
+          <ChevronsRight className="h-4 w-4" />
+        </Button>
+      </div>
       
-      {sidebarMode === 'none' && <EmptySidebar />}
-      
-      {sidebarMode === 'entity' && selectedNode && (
-        <EntityForm
-          entity={selectedNode}
-          onUpdate={updateEntity}
-          onDelete={() => deleteEntity(selectedNode.id)}
-          onAddAttribute={() => setSidebarMode('new-attribute')}
-          onUpdateAttribute={updateAttribute}
-          onDeleteAttribute={deleteAttribute}
-        />
-      )}
-      
-      {sidebarMode === 'new-entity' && selectedNode && <NewEntityForm />}
-      
-      {sidebarMode === 'new-attribute' && selectedNode && (
-        <AttributeForm
-          entityId={selectedNode.id}
-          onSave={(attributeData) => createAttribute(selectedNode.id, attributeData)}
-          onCancel={() => setSidebarMode('entity')}
-        />
-      )}
-      
-      {sidebarMode === 'relationship' && selectedEdge && (
-        <RelationshipForm
-          relationship={selectedEdge}
-          nodes={nodes}
-          onSave={(relationshipData) => updateRelationship(selectedEdge.id, relationshipData)}
-          onDelete={() => deleteRelationship(selectedEdge.id)}
-          onCancel={() => setSidebarMode('none')}
-        />
-      )}
-      
-      {sidebarMode === 'new-relationship' && (
-        <RelationshipForm
-          nodes={nodes}
-          onSave={createRelationship}
-          onCancel={() => setSidebarMode('none')}
-        />
-      )}
-      
-      {sidebarMode === 'settings' && (
-        <DiagramSettings
-          diagram={diagram}
-          onUpdate={(settingsData) => {
-            // Update diagram settings would be handled in DiagramContext
-            console.log("Updating diagram settings:", settingsData);
-            setSidebarMode('none');
-          }}
-          onBack={() => setSidebarMode('none')}
-        />
-      )}
+      <div className="pt-2">
+        {sidebarMode === 'none' && <EmptySidebar />}
+        
+        {sidebarMode === 'entity' && selectedNode && (
+          <EntityForm
+            entity={selectedNode}
+            onUpdate={updateEntity}
+            onDelete={() => deleteEntity(selectedNode.id)}
+            onAddAttribute={() => setSidebarMode('new-attribute')}
+            onUpdateAttribute={updateAttribute}
+            onDeleteAttribute={deleteAttribute}
+          />
+        )}
+        
+        {sidebarMode === 'new-entity' && selectedNode && <NewEntityForm />}
+        
+        {sidebarMode === 'new-attribute' && selectedNode && (
+          <AttributeForm
+            entityId={selectedNode.id}
+            onSave={(attributeData) => createAttribute(selectedNode.id, attributeData)}
+            onCancel={() => setSidebarMode('entity')}
+          />
+        )}
+        
+        {sidebarMode === 'relationship' && selectedEdge && (
+          <RelationshipForm
+            relationship={selectedEdge}
+            nodes={nodes}
+            onSave={(relationshipData) => updateRelationship(selectedEdge.id, relationshipData)}
+            onDelete={() => deleteRelationship(selectedEdge.id)}
+            onCancel={() => setSidebarMode('none')}
+          />
+        )}
+        
+        {sidebarMode === 'new-relationship' && (
+          <RelationshipForm
+            nodes={nodes}
+            onSave={createRelationship}
+            onCancel={() => setSidebarMode('none')}
+          />
+        )}
+        
+        {sidebarMode === 'settings' && (
+          <DiagramSettings
+            diagram={diagram}
+            onUpdate={(settingsData) => {
+              // Update diagram settings would be handled in DiagramContext
+              console.log("Updating diagram settings:", settingsData);
+              setSidebarMode('none');
+            }}
+            onBack={() => setSidebarMode('none')}
+          />
+        )}
+      </div>
     </div>
   );
 };

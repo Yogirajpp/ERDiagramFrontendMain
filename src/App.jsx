@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
 // Layout components
@@ -20,6 +20,8 @@ import BreadcrumbComponent from '@/components/Breadcrumb';
 // Protected route wrapper
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
+  const location = useLocation();
+  const isDiagramEditor = location.pathname.startsWith('/diagrams/');
 
   if (loading) {
     return <div className="flex justify-center items-center h-screen">Loading...</div>;
@@ -29,6 +31,21 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
+  // Full screen layout for diagram editor
+  if (isDiagramEditor) {
+    return (
+      <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <Header />
+          <main className="flex-1 overflow-auto">
+            {children}
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  // Default layout with sidebar for other protected routes
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
       <Sidebar />
