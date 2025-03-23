@@ -3,140 +3,60 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { entitiesAPI } from '@/lib/api';
+import { ArrowLeft, Save, Trash2 } from 'lucide-react';
 
 const RelationshipForm = ({ 
   relationship = null, 
   diagramId, 
   nodes = [], 
   onSave, 
+  onDelete,
   onCancel 
 }) => {
-  const [entities, setEntities] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
     type: 'one-to-many',
     sourceId: '',
-    sourceRole: '',
-    sourceCardinality: '1',
-    sourceParticipation: 'partial',
     targetId: '',
-    targetRole: '',
+    sourceCardinality: '1',
     targetCardinality: 'n',
-    targetParticipation: 'partial',
-    style: {
-      lineColor: '#000000',
-      lineStyle: 'solid',
-      lineWidth: 1,
-      textColor: '#000000'
-    }
+    onDelete: 'NO ACTION',
+    onUpdate: 'NO ACTION'
   });
-  const [sourcePos, setSourcePos] = useState({ x: 0, y: 0 });
-  const [targetPos, setTargetPos] = useState({ x: 0, y: 0 });
-
-  // Load entities if not provided in nodes
-  useEffect(() => {
-    const fetchEntities = async () => {
-      if (nodes.length === 0 && diagramId) {
-        try {
-          const response = await entitiesAPI.getByDiagram(diagramId);
-          setEntities(response.data.data);
-        } catch (err) {
-          console.error('Error loading entities:', err);
-        }
-      } else {
-        setEntities(nodes.map(node => ({
-          _id: node.id,
-          name: node.data.name,
-          position: node.position
-        })));
-      }
-    };
-
-    fetchEntities();
-  }, [diagramId, nodes]);
 
   // Load existing relationship data if editing
   useEffect(() => {
     if (relationship) {
       // For editing an existing relationship
-      if (relationship.data && relationship.data.entities) {
-        const sourceEntity = relationship.data.entities[0] || {};
-        const targetEntity = relationship.data.entities[1] || {};
-        
+      if (relationship.data) {
         setFormData({
           name: relationship.data.name || '',
           type: relationship.data.type || 'one-to-many',
-          sourceId: relationship.source || sourceEntity.entityId?._id || '',
-          sourceRole: sourceEntity.role || '',
-          sourceCardinality: sourceEntity.cardinality || '1',
-          sourceParticipation: sourceEntity.participation || 'partial',
-          targetId: relationship.target || targetEntity.entityId?._id || '',
-          targetRole: targetEntity.role || '',
-          targetCardinality: targetEntity.cardinality || 'n',
-          targetParticipation: targetEntity.participation || 'partial',
-          style: relationship.data.style || {
-            lineColor: '#000000',
-            lineStyle: 'solid',
-            lineWidth: 1,
-            textColor: '#000000'
-          }
+          sourceId: relationship.source || '',
+          targetId: relationship.target || '',
+          sourceCardinality: relationship.data.sourceCardinality || '1',
+          targetCardinality: relationship.data.targetCardinality || 'n',
+          onDelete: relationship.data.onDelete || 'NO ACTION',
+          onUpdate: relationship.data.onUpdate || 'NO ACTION'
         });
       }
-    } else if (entities.length >= 2) {
+    } else if (nodes.length >= 2) {
       // Set default entities for new relationship
       setFormData(prev => ({
         ...prev,
-        sourceId: entities[0]?._id || '',
-        targetId: entities[1]?._id || ''
+        sourceId: nodes[0]?._id || nodes[0]?.id || '',
+        targetId: nodes[1]?._id || nodes[1]?.id || ''
       }));
     }
-  }, [relationship, entities]);
-
-  // Update positions when source/target entities change
-  useEffect(() => {
-    const sourceEntity = entities.find(e => e._id === formData.sourceId);
-    const targetEntity = entities.find(e => e._id === formData.targetId);
-    
-    if (sourceEntity && sourceEntity.position) {
-      setSourcePos(sourceEntity.position);
-    }
-    
-    if (targetEntity && targetEntity.position) {
-      setTargetPos(targetEntity.position);
-    }
-  }, [formData.sourceId, formData.targetId, entities]);
+  }, [relationship, nodes]);
 
   // Handle form change
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
-    if (name.startsWith('style.')) {
-      const styleProp = name.split('.')[1];
-      setFormData({
-        ...formData,
-        style: {
-          ...formData.style,
-          [styleProp]: value
-        }
-      });
-    } else {
-      setFormData({
-        ...formData,
-        [name]: value
-      });
-    }
-  };
-
-  // Handle form submission
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    onSave({
-      ...formData,
-      sourcePosition: sourcePos,
-      targetPosition: targetPos
-    });
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   // Set cardinality automatically based on relationship type
@@ -165,255 +85,227 @@ const RelationshipForm = ({
     });
   };
 
+  // Handle form submission
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    // Validate required fields
+    if (!formData.name.trim() || !formData.sourceId || !formData.targetId) {
+      alert('Please fill in all required fields');
+      return;
+    }
+    
+    onSave(formData);
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="p-4 space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold mb-4">
-          {relationship ? 'Edit Relationship' : 'Create Relationship'}
-        </h2>
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="bg-slate-50 dark:bg-slate-900 border-b p-4 flex items-center justify-between">
+        <div className="flex items-center">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={onCancel}
+            className="mr-2 h-8 w-8 p-0"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h2 className="font-medium">
+            {relationship ? 'Edit Relationship' : 'Create Relationship'}
+          </h2>
+        </div>
       </div>
 
-      {/* Basic Information */}
-      <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="flex-1 overflow-auto p-4 space-y-4">
+        {/* Relationship Name */}
         <div className="space-y-2">
-          <Label htmlFor="name">Relationship Name</Label>
+          <Label htmlFor="name">Relationship Name <span className="text-red-500">*</span></Label>
           <Input
             id="name"
             name="name"
             value={formData.name}
             onChange={handleChange}
-            placeholder="e.g., has, belongs to"
+            placeholder="e.g., has, belongs_to, references"
             required
+            autoFocus
           />
         </div>
-
+        
+        {/* Relationship Type */}
         <div className="space-y-2">
           <Label htmlFor="type">Relationship Type</Label>
-          <select
-            id="type"
-            name="type"
-            value={formData.type}
-            onChange={handleTypeChange}
-            className="w-full p-2 border rounded bg-background"
-          >
-            <option value="one-to-one">One-to-One</option>
-            <option value="one-to-many">One-to-Many</option>
-            <option value="many-to-many">Many-to-Many</option>
-          </select>
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* Source Entity */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-semibold">Source Entity</h3>
-        
-        <div className="space-y-2">
-          <Label htmlFor="sourceId">Entity</Label>
-          <select
-            id="sourceId"
-            name="sourceId"
-            value={formData.sourceId}
-            onChange={handleChange}
-            className="w-full p-2 border rounded bg-background"
-            required
-          >
-            <option value="">Select source entity</option>
-            {entities.map(entity => (
-              <option key={entity._id} value={entity._id}>
-                {entity.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="sourceRole">Role (Optional)</Label>
-          <Input
-            id="sourceRole"
-            name="sourceRole"
-            value={formData.sourceRole}
-            onChange={handleChange}
-            placeholder="e.g., owner, parent"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="sourceCardinality">Cardinality</Label>
-          <select
-            id="sourceCardinality"
-            name="sourceCardinality"
-            value={formData.sourceCardinality}
-            onChange={handleChange}
-            className="w-full p-2 border rounded bg-background"
-          >
-            <option value="0..1">Zero or One (0..1)</option>
-            <option value="1">Exactly One (1)</option>
-            <option value="0..n">Zero or Many (0..*)</option>
-            <option value="1..n">One or Many (1..*)</option>
-            <option value="n">Many (*)</option>
-          </select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="sourceParticipation">Participation</Label>
-          <select
-            id="sourceParticipation"
-            name="sourceParticipation"
-            value={formData.sourceParticipation}
-            onChange={handleChange}
-            className="w-full p-2 border rounded bg-background"
-          >
-            <option value="partial">Partial</option>
-            <option value="total">Total</option>
-          </select>
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* Target Entity */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-semibold">Target Entity</h3>
-        
-        <div className="space-y-2">
-          <Label htmlFor="targetId">Entity</Label>
-          <select
-            id="targetId"
-            name="targetId"
-            value={formData.targetId}
-            onChange={handleChange}
-            className="w-full p-2 border rounded bg-background"
-            required
-          >
-            <option value="">Select target entity</option>
-            {entities
-              .filter(entity => entity._id !== formData.sourceId)
-              .map(entity => (
-                <option key={entity._id} value={entity._id}>
-                  {entity.name}
-                </option>
-              ))}
-          </select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="targetRole">Role (Optional)</Label>
-          <Input
-            id="targetRole"
-            name="targetRole"
-            value={formData.targetRole}
-            onChange={handleChange}
-            placeholder="e.g., member, child"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="targetCardinality">Cardinality</Label>
-          <select
-            id="targetCardinality"
-            name="targetCardinality"
-            value={formData.targetCardinality}
-            onChange={handleChange}
-            className="w-full p-2 border rounded bg-background"
-          >
-            <option value="0..1">Zero or One (0..1)</option>
-            <option value="1">Exactly One (1)</option>
-            <option value="0..n">Zero or Many (0..*)</option>
-            <option value="1..n">One or Many (1..*)</option>
-            <option value="n">Many (*)</option>
-          </select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="targetParticipation">Participation</Label>
-          <select
-            id="targetParticipation"
-            name="targetParticipation"
-            value={formData.targetParticipation}
-            onChange={handleChange}
-            className="w-full p-2 border rounded bg-background"
-          >
-            <option value="partial">Partial</option>
-            <option value="total">Total</option>
-          </select>
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* Style Options */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-semibold">Style Options</h3>
-        
-        <div className="space-y-2">
-          <Label htmlFor="style.lineStyle">Line Style</Label>
-          <select
-            id="style.lineStyle"
-            name="style.lineStyle"
-            value={formData.style.lineStyle}
-            onChange={handleChange}
-            className="w-full p-2 border rounded bg-background"
-          >
-            <option value="solid">Solid</option>
-            <option value="dashed">Dashed</option>
-            <option value="dotted">Dotted</option>
-          </select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="style.lineWidth">Line Width</Label>
-          <select
-            id="style.lineWidth"
-            name="style.lineWidth"
-            value={formData.style.lineWidth}
-            onChange={handleChange}
-            className="w-full p-2 border rounded bg-background"
-          >
-            <option value="1">Thin</option>
-            <option value="2">Medium</option>
-            <option value="3">Thick</option>
-          </select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="style.lineColor">Line Color</Label>
-          <div className="flex items-center space-x-2">
-            <Input
-              type="color"
-              id="style.lineColor"
-              name="style.lineColor"
-              value={formData.style.lineColor}
-              onChange={handleChange}
-              className="w-12 h-8 p-1"
-            />
-            <Input
-              type="text"
-              value={formData.style.lineColor}
-              onChange={handleChange}
-              name="style.lineColor"
-              className="flex-1"
-              placeholder="#000000"
-            />
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              className={`p-2 border rounded ${formData.type === 'one-to-one' ? 'bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-700' : 'bg-white dark:bg-slate-800'}`}
+              onClick={() => handleTypeChange({ target: { value: 'one-to-one' } })}
+            >
+              <div className="text-center">
+                <span className="font-medium">One-to-One</span>
+                <div className="text-xs text-muted-foreground mt-1">1:1</div>
+              </div>
+            </button>
+            
+            <button
+              type="button"
+              className={`p-2 border rounded ${formData.type === 'one-to-many' ? 'bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-700' : 'bg-white dark:bg-slate-800'}`}
+              onClick={() => handleTypeChange({ target: { value: 'one-to-many' } })}
+            >
+              <div className="text-center">
+                <span className="font-medium">One-to-Many</span>
+                <div className="text-xs text-muted-foreground mt-1">1:N</div>
+              </div>
+            </button>
+            
+            <button
+              type="button"
+              className={`p-2 border rounded ${formData.type === 'many-to-many' ? 'bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-700' : 'bg-white dark:bg-slate-800'}`}
+              onClick={() => handleTypeChange({ target: { value: 'many-to-many' } })}
+            >
+              <div className="text-center">
+                <span className="font-medium">Many-to-Many</span>
+                <div className="text-xs text-muted-foreground mt-1">N:N</div>
+              </div>
+            </button>
           </div>
         </div>
+        
+        <Separator />
+        
+        {/* Source and Target Entities */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="sourceId">Source Table <span className="text-red-500">*</span></Label>
+            <select
+              id="sourceId"
+              name="sourceId"
+              value={formData.sourceId}
+              onChange={handleChange}
+              className="w-full p-2 border rounded-md bg-background"
+              required
+            >
+              <option value="">Select source</option>
+              {nodes.map(entity => (
+                <option key={entity._id || entity.id} value={entity._id || entity.id}>
+                  {entity.name || entity.data?.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="targetId">Target Table <span className="text-red-500">*</span></Label>
+            <select
+              id="targetId"
+              name="targetId"
+              value={formData.targetId}
+              onChange={handleChange}
+              className="w-full p-2 border rounded-md bg-background"
+              required
+            >
+              <option value="">Select target</option>
+              {nodes
+                .filter(entity => (entity._id || entity.id) !== formData.sourceId)
+                .map(entity => (
+                  <option key={entity._id || entity.id} value={entity._id || entity.id}>
+                    {entity.name || entity.data?.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+        </div>
+        
+        <Separator />
+        
+        {/* ON DELETE and ON UPDATE behavior */}
+        <div className="space-y-4">
+          <Label className="text-sm font-medium block">FOREIGN KEY OPTIONS</Label>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="onDelete">ON DELETE</Label>
+              <select
+                id="onDelete"
+                name="onDelete"
+                value={formData.onDelete}
+                onChange={handleChange}
+                className="w-full p-2 border rounded-md bg-background"
+              >
+                <option value="NO ACTION">NO ACTION</option>
+                <option value="RESTRICT">RESTRICT</option>
+                <option value="CASCADE">CASCADE</option>
+                <option value="SET NULL">SET NULL</option>
+                <option value="SET DEFAULT">SET DEFAULT</option>
+              </select>
+              <p className="text-xs text-muted-foreground">
+                Action when source record is deleted
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="onUpdate">ON UPDATE</Label>
+              <select
+                id="onUpdate"
+                name="onUpdate"
+                value={formData.onUpdate}
+                onChange={handleChange}
+                className="w-full p-2 border rounded-md bg-background"
+              >
+                <option value="NO ACTION">NO ACTION</option>
+                <option value="RESTRICT">RESTRICT</option>
+                <option value="CASCADE">CASCADE</option>
+                <option value="SET NULL">SET NULL</option>
+                <option value="SET DEFAULT">SET DEFAULT</option>
+              </select>
+              <p className="text-xs text-muted-foreground">
+                Action when source record is updated
+              </p>
+            </div>
+          </div>
+        </div>
+      </form>
+      
+      {/* Footer Actions */}
+      <div className="border-t p-4 bg-slate-50 dark:bg-slate-900 flex justify-between">
+        {relationship && onDelete ? (
+          <Button 
+            variant="destructive" 
+            size="sm"
+            onClick={() => {
+              if (window.confirm("Are you sure you want to delete this relationship?")) {
+                onDelete();
+              }
+            }}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete
+          </Button>
+        ) : (
+          <div></div> 
+        )}
+        
+        <div className="flex space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onCancel}
+          >
+            Cancel
+          </Button>
+          
+          <Button
+            type="submit"
+            size="sm"
+            onClick={handleSubmit}
+            disabled={!formData.name || !formData.sourceId || !formData.targetId}
+          >
+            <Save className="h-4 w-4 mr-2" />
+            {relationship ? 'Update' : 'Create'}
+          </Button>
+        </div>
       </div>
-
-      {/* Form Actions */}
-      <div className="pt-4 flex justify-end space-x-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onCancel}
-        >
-          Cancel
-        </Button>
-        <Button type="submit">
-          {relationship ? 'Update' : 'Create'} Relationship
-        </Button>
-      </div>
-    </form>
+    </div>
   );
 };
 

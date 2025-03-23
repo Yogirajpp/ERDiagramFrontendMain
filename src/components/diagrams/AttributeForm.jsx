@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Save, XCircle } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 
 const AttributeForm = ({ 
   attribute = null,  // If provided, we're editing an existing attribute
@@ -16,19 +17,14 @@ const AttributeForm = ({
     dataType: attribute?.dataType || 'String',
     isPrimaryKey: attribute?.isPrimaryKey || false,
     isForeignKey: attribute?.isForeignKey || false,
-    isNullable: attribute?.isNullable ?? true, // Default to true for new attributes
+    isNullable: attribute?.isNullable ?? true,
     isUnique: attribute?.isUnique || false,
+    isAutoIncrement: attribute?.isAutoIncrement || false,
+    isUnsigned: attribute?.isUnsigned || false,
     defaultValue: attribute?.defaultValue || '',
+    comment: attribute?.comment || '',
     position: attribute?.position || { x: 0, y: 0 }
   });
-
-  // Available data types
-  const dataTypes = [
-    'String', 'Number', 'Boolean', 'Date', 'ObjectId', 
-    'Array', 'Object', 'Buffer', 'Mixed', 'Decimal', 
-    'Integer', 'BigInt', 'Email', 'URL', 'Float', 
-    'Double', 'UUID', 'Text', 'JSON'
-  ];
 
   // Handle form change
   const handleChange = (e) => {
@@ -39,9 +35,8 @@ const AttributeForm = ({
     }));
   };
 
-  // Handle checkbox change
+  // Handle checkbox change with special logic
   const handleCheckboxChange = (field, checked) => {
-    // Special logic for primary keys
     if (field === 'isPrimaryKey' && checked) {
       // If setting as primary key, also set not nullable and unique
       setFormData(prev => ({
@@ -78,38 +73,40 @@ const AttributeForm = ({
   };
 
   return (
-    <div className="p-4 h-full flex flex-col">
-      <div className="mb-4">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={onCancel}
-          className="pl-0"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-        <h2 className="text-lg font-semibold mt-2">
-          {attribute ? 'Edit Attribute' : 'Add Attribute'}
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          {attribute ? 'Modify attribute properties' : 'Define a new attribute for this entity'}
-        </p>
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="bg-slate-50 dark:bg-slate-900 border-b p-4 flex items-center justify-between">
+        <div className="flex items-center">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={onCancel}
+            className="mr-2 h-8 w-8 p-0"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h2 className="font-medium">
+            {attribute ? 'Edit Attribute' : 'New Attribute'}
+          </h2>
+        </div>
       </div>
-      
-      <form onSubmit={handleSubmit} className="space-y-4 flex-1">
+
+      <form onSubmit={handleSubmit} className="flex-1 overflow-auto p-4 space-y-4">
+        {/* Column Name */}
         <div className="space-y-2">
-          <Label htmlFor="name">Attribute Name <span className="text-red-500">*</span></Label>
+          <Label htmlFor="name">Column Name <span className="text-red-500">*</span></Label>
           <Input
             id="name"
             name="name"
             value={formData.name}
             onChange={handleChange}
-            placeholder="e.g. id, name, createdAt"
+            placeholder="e.g. id, name, email"
             required
+            autoFocus
           />
         </div>
         
+        {/* Data Type */}
         <div className="space-y-2">
           <Label htmlFor="dataType">Data Type <span className="text-red-500">*</span></Label>
           <select
@@ -120,105 +117,155 @@ const AttributeForm = ({
             className="w-full p-2 border rounded-md bg-background"
             required
           >
-            {dataTypes.map(type => (
-              <option key={type} value={type}>{type}</option>
-            ))}
+            <optgroup label="Common Types">
+              <option value="String">String</option>
+              <option value="Number">Number</option>
+              <option value="Boolean">Boolean</option>
+              <option value="Date">Date</option>
+              <option value="ObjectId">ObjectId</option>
+            </optgroup>
+            <optgroup label="SQL Types">
+              <option value="varchar">varchar</option>
+              <option value="int">int</option>
+              <option value="bigint">bigint</option>
+              <option value="text">text</option>
+              <option value="datetime">datetime</option>
+              <option value="decimal">decimal</option>
+              <option value="float">float</option>
+              <option value="bit">bit</option>
+            </optgroup>
           </select>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-2">
+        <Separator />
+        
+        {/* Column Attributes */}
+        <div>
+          <Label className="text-sm font-medium mb-3 block">COLUMN ATTRIBUTES</Label>
+          
+          <div className="space-y-2 pl-1">
             <div className="flex items-center space-x-2">
               <Checkbox 
                 id="isPrimaryKey" 
                 checked={formData.isPrimaryKey} 
                 onCheckedChange={(checked) => handleCheckboxChange('isPrimaryKey', checked)}
               />
-              <Label htmlFor="isPrimaryKey" className="cursor-pointer">Primary Key</Label>
+              <Label htmlFor="isPrimaryKey" className="text-sm cursor-pointer">
+                Primary Key
+              </Label>
             </div>
-            <p className="text-xs text-muted-foreground ml-6">
-              Entity's unique identifier
-            </p>
-          </div>
-          
-          <div className="space-y-2">
+            
             <div className="flex items-center space-x-2">
               <Checkbox 
                 id="isForeignKey" 
                 checked={formData.isForeignKey} 
                 onCheckedChange={(checked) => handleCheckboxChange('isForeignKey', checked)}
               />
-              <Label htmlFor="isForeignKey" className="cursor-pointer">Foreign Key</Label>
-            </div>
-            <p className="text-xs text-muted-foreground ml-6">
-              Reference to another entity
-            </p>
-          </div>
-          
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="isNullable" 
-                checked={formData.isNullable} 
-                onCheckedChange={(checked) => handleCheckboxChange('isNullable', checked)}
-                disabled={formData.isPrimaryKey} // Can't be nullable if it's a primary key
-              />
-              <Label 
-                htmlFor="isNullable" 
-                className={`cursor-pointer ${formData.isPrimaryKey ? 'text-muted-foreground' : ''}`}
-              >
-                Nullable
+              <Label htmlFor="isForeignKey" className="text-sm cursor-pointer">
+                Foreign Key
               </Label>
             </div>
-            <p className="text-xs text-muted-foreground ml-6">
-              Value can be null/undefined
-            </p>
-          </div>
-          
-          <div className="space-y-2">
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="isAutoIncrement" 
+                checked={formData.isAutoIncrement} 
+                onCheckedChange={(checked) => setFormData({...formData, isAutoIncrement: checked})}
+              />
+              <Label htmlFor="isAutoIncrement" className="text-sm cursor-pointer">
+                Auto increment
+              </Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="isUnsigned" 
+                checked={formData.isUnsigned} 
+                onCheckedChange={(checked) => setFormData({...formData, isUnsigned: checked})}
+              />
+              <Label htmlFor="isUnsigned" className="text-sm cursor-pointer">
+                Unsigned
+              </Label>
+            </div>
+            
             <div className="flex items-center space-x-2">
               <Checkbox 
                 id="isUnique" 
                 checked={formData.isUnique} 
                 onCheckedChange={(checked) => handleCheckboxChange('isUnique', checked)}
-                disabled={formData.isPrimaryKey} // Always unique if it's a primary key
+                disabled={formData.isPrimaryKey}
               />
               <Label 
                 htmlFor="isUnique" 
-                className={`cursor-pointer ${formData.isPrimaryKey ? 'text-muted-foreground' : ''}`}
+                className={`text-sm cursor-pointer ${formData.isPrimaryKey ? 'text-muted-foreground' : ''}`}
               >
                 Unique
               </Label>
             </div>
-            <p className="text-xs text-muted-foreground ml-6">
-              Value must be unique
-            </p>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="isNullable" 
+                checked={formData.isNullable} 
+                onCheckedChange={(checked) => handleCheckboxChange('isNullable', checked)}
+                disabled={formData.isPrimaryKey}
+              />
+              <Label 
+                htmlFor="isNullable" 
+                className={`text-sm cursor-pointer ${formData.isPrimaryKey ? 'text-muted-foreground' : ''}`}
+              >
+                Nullable
+              </Label>
+            </div>
           </div>
         </div>
         
+        <Separator />
+        
+        {/* Default Value */}
         <div className="space-y-2">
-          <Label htmlFor="defaultValue">Default Value</Label>
+          <Label htmlFor="defaultValue">Default</Label>
           <Input
             id="defaultValue"
             name="defaultValue"
             value={formData.defaultValue}
             onChange={handleChange}
-            placeholder="Default value (optional)"
+            placeholder="Default value"
           />
-          <p className="text-xs text-muted-foreground">
-            Default value if not specified
-          </p>
         </div>
         
-        <div className="pt-6 flex justify-end mt-auto">
-          <Button type="button" variant="outline" onClick={onCancel} className="mr-2">
-            Cancel
-          </Button>
-          <Button type="submit">
-            {attribute ? 'Update Attribute' : 'Add Attribute'}
-          </Button>
+        {/* Comment */}
+        <div className="space-y-2">
+          <Label htmlFor="comment">Comment</Label>
+          <Input
+            id="comment"
+            name="comment"
+            value={formData.comment}
+            onChange={handleChange}
+            placeholder="Optional description for this column"
+          />
         </div>
       </form>
+      
+      {/* Footer Actions */}
+      <div className="border-t p-4 bg-slate-50 dark:bg-slate-900 flex justify-between">
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={onCancel}
+        >
+          <XCircle className="h-4 w-4 mr-2" />
+          Cancel
+        </Button>
+        
+        <Button
+          size="sm"
+          onClick={handleSubmit}
+        >
+          <Save className="h-4 w-4 mr-2" />
+          {attribute ? 'Update column' : 'Add column'}
+        </Button>
+      </div>
     </div>
   );
 };

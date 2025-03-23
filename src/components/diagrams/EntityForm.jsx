@@ -1,11 +1,9 @@
 import { useState } from 'react';
-import { Plus, Save, Trash2 } from 'lucide-react';
+import { Plus, Save, Trash2, Edit, ChevronDown, ChevronRight, KeyRound, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import AttributeList from './AttributeList';
 
 const EntityForm = ({ 
   entity, 
@@ -17,10 +15,11 @@ const EntityForm = ({
 }) => {
   const [formData, setFormData] = useState({
     name: entity.data?.name || '',
-    type: entity.data?.type || 'regular',
-    style: entity.data?.style || {}
+    type: entity.data?.type || 'regular'
   });
-  const [activeTab, setActiveTab] = useState('general');
+  
+  const [showAttributes, setShowAttributes] = useState(true);
+  const [isDirty, setIsDirty] = useState(false);
 
   // Handle form change
   const handleChange = (e) => {
@@ -29,219 +28,206 @@ const EntityForm = ({
       ...prev,
       [name]: value
     }));
-  };
-
-  // Handle style change
-  const handleStyleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      style: {
-        ...prev.style,
-        [name]: value
-      }
-    }));
+    setIsDirty(true);
   };
 
   // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Pass the entity ID and form data to onUpdate
     onUpdate(entity.id, formData);
+    setIsDirty(false);
   };
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="p-4 border-b">
-        <h2 className="text-lg font-semibold mb-1">Entity Properties</h2>
-        <p className="text-sm text-muted-foreground">
-          Edit properties for this entity
-        </p>
+    <div className="flex flex-col h-full">
+      {/* Entity Header */}
+      <div className="bg-slate-50 dark:bg-slate-900 border-b p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <Input
+              value={formData.name}
+              name="name"
+              onChange={handleChange}
+              placeholder="Entity Name"
+              className="text-lg font-medium bg-transparent border-0 border-b border-dashed focus-visible:ring-0 px-0 mb-2"
+            />
+            
+            <div className="flex items-center">
+              <select
+                value={formData.type}
+                name="type"
+                onChange={handleChange}
+                className="text-xs bg-transparent border-0 focus-visible:ring-0 px-0 text-muted-foreground"
+              >
+                <option value="regular">Regular Entity</option>
+                <option value="weak">Weak Entity</option>
+                <option value="associative">Associative Entity</option>
+              </select>
+            </div>
+          </div>
+          
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleSubmit}
+            disabled={!isDirty}
+          >
+            <Save className="h-4 w-4 mr-1" />
+            Save
+          </Button>
+        </div>
       </div>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <div className="px-4 border-b">
-          <TabsList className="w-full">
-            <TabsTrigger value="general" className="flex-1">General</TabsTrigger>
-            <TabsTrigger value="attributes" className="flex-1">Attributes</TabsTrigger>
-            <TabsTrigger value="style" className="flex-1">Style</TabsTrigger>
-          </TabsList>
-        </div>
-        
-        <div className="flex-1 overflow-auto">
-          <TabsContent value="general" className="p-4 space-y-4 h-full">
-            <form onSubmit={handleSubmit}>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Entity Name</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="Entity name"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="type">Entity Type</Label>
-                  <select
-                    id="type"
-                    name="type"
-                    value={formData.type}
-                    onChange={handleChange}
-                    className="w-full p-2 border rounded-md bg-background"
-                  >
-                    <option value="regular">Regular Entity</option>
-                    <option value="weak">Weak Entity</option>
-                    <option value="associative">Associative Entity</option>
-                  </select>
-                </div>
-                
-                <div className="pt-4 flex justify-between">
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    onClick={onDelete}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Entity
-                  </Button>
-                  <Button type="submit">
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Changes
-                  </Button>
-                </div>
-              </div>
-            </form>
-          </TabsContent>
-          
-          <TabsContent value="attributes" className="p-4 space-y-4 h-full">
-            <div className="flex justify-between items-center">
-              <h3 className="text-sm font-medium">Entity Attributes</h3>
+      {/* Attributes Section */}
+      <div className="p-4 flex-1 overflow-auto">
+        <div className="border rounded-md bg-slate-50 dark:bg-slate-900 mb-4">
+          <div 
+            className="flex items-center justify-between p-2 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800"
+            onClick={() => setShowAttributes(!showAttributes)}
+          >
+            <div className="flex items-center">
+              {showAttributes ? 
+                <ChevronDown className="h-4 w-4 mr-2" /> : 
+                <ChevronRight className="h-4 w-4 mr-2" />
+              }
+              <span className="font-medium">Columns</span>
+            </div>
+            
+            <div className="flex items-center space-x-1">
+              <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded">
+                {entity.data?.attributes?.length || 0}
+              </span>
               <Button 
-                variant="outline" 
-                size="sm"
-                onClick={onAddAttribute}
+                variant="ghost" 
+                size="sm" 
+                className="h-6 w-6 p-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddAttribute();
+                }}
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Attribute
+                <Plus className="h-4 w-4" />
               </Button>
             </div>
-            
-            <Separator />
-            
-            <AttributeList 
-              attributes={entity.data?.attributes} 
-              onEdit={(attrId) => {
-                // Find the attribute and prepare for editing
-                const attribute = entity.data?.attributes.find(a => a._id === attrId);
-                if (attribute && onUpdateAttribute) {
-                  // Call the update handler with the attribute data
-                  // This would typically open an edit form
-                  onUpdateAttribute(entity.id, attrId, attribute);
-                }
-              }}
-              onDelete={(attrId) => onDeleteAttribute(entity.id, attrId)}
-            />
-          </TabsContent>
+          </div>
           
-          <TabsContent value="style" className="p-4 space-y-4 h-full">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="backgroundColor">Background Color</Label>
-                <div className="flex space-x-2">
-                  <Input
-                    type="color"
-                    id="backgroundColor"
-                    name="backgroundColor"
-                    value={formData.style.backgroundColor || '#ffffff'}
-                    onChange={handleStyleChange}
-                    className="w-12 h-10 p-1"
-                  />
-                  <Input
-                    type="text"
-                    value={formData.style.backgroundColor || '#ffffff'}
-                    onChange={handleStyleChange}
-                    name="backgroundColor"
-                    className="flex-1"
-                  />
+          {showAttributes && entity.data?.attributes?.length > 0 && (
+            <div className="p-2 border-t">
+              <div className="bg-white dark:bg-slate-800 rounded border overflow-hidden">
+                {/* Header */}
+                <div className="grid grid-cols-12 text-xs font-medium border-b bg-slate-100 dark:bg-slate-700">
+                  <div className="col-span-5 p-2">Name</div>
+                  <div className="col-span-3 p-2">Type</div>
+                  <div className="col-span-2 p-2 text-center">Properties</div>
+                  <div className="col-span-2 p-2 text-center"></div>
                 </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="borderColor">Border Color</Label>
-                <div className="flex space-x-2">
-                  <Input
-                    type="color"
-                    id="borderColor"
-                    name="borderColor"
-                    value={formData.style.borderColor || '#000000'}
-                    onChange={handleStyleChange}
-                    className="w-12 h-10 p-1"
-                  />
-                  <Input
-                    type="text"
-                    value={formData.style.borderColor || '#000000'}
-                    onChange={handleStyleChange}
-                    name="borderColor"
-                    className="flex-1"
-                  />
+                
+                {/* Attribute Rows */}
+                <div className="max-h-[300px] overflow-y-auto">
+                  {entity.data.attributes.map(attr => (
+                    <div key={attr._id} className="grid grid-cols-12 text-sm border-b hover:bg-slate-50 dark:hover:bg-slate-700">
+                      <div className="col-span-5 p-2 flex items-center">
+                        {attr.isPrimaryKey && <KeyRound className="h-3.5 w-3.5 mr-1.5 text-blue-500" />}
+                        <span className="truncate">{attr.name}</span>
+                      </div>
+                      <div className="col-span-3 p-2 text-xs">
+                        {attr.dataType}
+                      </div>
+                      <div className="col-span-2 p-2 flex flex-col items-center text-center">
+                        {attr.isPrimaryKey && (
+                          <span className="inline-block px-1.5 py-0.5 text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-sm mb-1">PK</span>
+                        )}
+                        {attr.isAutoIncrement && (
+                          <span className="inline-block px-1.5 py-0.5 text-[10px] bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-sm mb-1">AI</span>
+                        )}
+                        {!attr.isNullable && (
+                          <span className="inline-block px-1.5 py-0.5 text-[10px] bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded-sm">Required</span>
+                        )}
+                      </div>
+                      <div className="col-span-2 p-2 flex justify-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={() => {
+                            const attribute = entity.data?.attributes.find(a => a._id === attr._id);
+                            if (attribute) {
+                              onUpdateAttribute(entity.id, attr._id, attribute);
+                            }
+                          }}
+                        >
+                          <Edit className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 ml-1"
+                          onClick={() => onDeleteAttribute(entity.id, attr._id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="textColor">Text Color</Label>
-                <div className="flex space-x-2">
-                  <Input
-                    type="color"
-                    id="textColor"
-                    name="textColor"
-                    value={formData.style.textColor || '#000000'}
-                    onChange={handleStyleChange}
-                    className="w-12 h-10 p-1"
-                  />
-                  <Input
-                    type="text"
-                    value={formData.style.textColor || '#000000'}
-                    onChange={handleStyleChange}
-                    name="textColor"
-                    className="flex-1"
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="borderWidth">Border Width</Label>
-                <div className="flex items-center space-x-2">
-                  <Input
-                    type="range"
-                    min="1"
-                    max="5"
-                    id="borderWidth"
-                    name="borderWidth"
-                    value={formData.style.borderWidth || 1}
-                    onChange={handleStyleChange}
-                    className="flex-1"
-                  />
-                  <span className="w-8 text-center">
-                    {formData.style.borderWidth || 1}px
-                  </span>
-                </div>
-              </div>
-              
-              <div className="pt-4 flex justify-end">
-                <Button 
-                  onClick={handleSubmit}
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Style
-                </Button>
               </div>
             </div>
-          </TabsContent>
+          )}
+          
+          {showAttributes && entity.data?.attributes?.length === 0 && (
+            <div className="p-4 text-center text-sm text-muted-foreground border-t">
+              <p>No columns defined</p>
+              <Button
+                variant="link"
+                size="sm"
+                onClick={onAddAttribute}
+                className="mt-1"
+              >
+                <Plus className="h-3.5 w-3.5 mr-1" />
+                Add column
+              </Button>
+            </div>
+          )}
         </div>
-      </Tabs>
+        
+        {/* Indexes Section (placeholder) */}
+        <div className="border rounded-md bg-slate-50 dark:bg-slate-900">
+          <div className="flex items-center justify-between p-2">
+            <div className="flex items-center">
+              <ChevronRight className="h-4 w-4 mr-2" />
+              <span className="font-medium">Indexes</span>
+            </div>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+      
+      {/* Actions */}
+      <div className="border-t p-4 bg-slate-50 dark:bg-slate-900 flex items-center justify-between">
+        <div className="flex space-x-2">
+          <Button 
+            variant="destructive" 
+            size="sm"
+            onClick={onDelete}
+          >
+            <Trash2 className="h-4 w-4 mr-1" />
+            Delete Table
+          </Button>
+        </div>
+        
+        <div className="flex space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onAddAttribute}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Add Column
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };

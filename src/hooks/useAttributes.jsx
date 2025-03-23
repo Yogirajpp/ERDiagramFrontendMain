@@ -143,9 +143,6 @@ export const useAttributes = () => {
    * Delete an attribute
    */
   const deleteAttribute = async (entityId, attributeId) => {
-    if (!confirm('Are you sure you want to delete this attribute?')) {
-      return false;
-    }
     
     try {
       setLoading(true);
