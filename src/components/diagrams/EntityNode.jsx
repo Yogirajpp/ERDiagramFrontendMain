@@ -1,9 +1,10 @@
 import { useCallback, useState, useRef } from 'react';
 import { Handle, Position } from 'reactflow';
-import { Plus, Trash2, Edit2, ChevronDown, ChevronUp, Save } from 'lucide-react';
+import { Plus, Trash2, Edit2, ChevronDown, ChevronUp, Save, Key, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { useDiagram } from '@/contexts/DiagramContext';
 import useAttributes from '@/hooks/useAttributes';
 import useEntities from '@/hooks/useEntities';
@@ -25,48 +26,61 @@ const EntityNode = ({ data, selected, id }) => {
   const [newAttribute, setNewAttribute] = useState({
     name: '',
     dataType: 'String',
-    isPrimaryKey: false
+    isPrimaryKey: false,
+    isNullable: true,
+    isUnique: false
   });
   
   // Ref for attribute input focus
   const attributeInputRef = useRef(null);
   
-  // Default styles
-  const defaultStyle = {
-    backgroundColor: '#ffffff',
-    borderColor: '#000000',
-    borderWidth: 1,
-    textColor: '#000000'
-  };
-  
-  // Merge default and custom styles
-  const mergedStyle = { ...defaultStyle, ...style };
-  
-  // Style based on entity type
-  const getTypeStyle = useCallback(() => {
-    switch (type) {
+  // Default styles based on entity type
+  const getTypeConfig = useCallback(() => {
+    switch (editedType) {
       case 'weak':
         return {
-          container: 'border-dashed',
-          header: 'bg-yellow-50 dark:bg-yellow-900/20 border-b border-dashed',
-          title: 'text-yellow-700 dark:text-yellow-400'
+          style: {
+            backgroundColor: '#FFFBEB',
+            borderColor: '#F59E0B',
+            borderWidth: 1,
+            textColor: '#78350F'
+          },
+          container: 'border-dashed border-amber-400',
+          header: 'bg-amber-50 border-b border-dashed border-amber-400',
+          title: 'text-amber-800 font-medium'
         };
       case 'associative':
         return {
-          container: 'border-2',
-          header: 'bg-green-50 dark:bg-green-900/20 border-b border-2',
-          title: 'text-green-700 dark:text-green-400'
+          style: {
+            backgroundColor: '#ECFDF5',
+            borderColor: '#10B981',
+            borderWidth: 2,
+            textColor: '#065F46'
+          },
+          container: 'border-2 border-emerald-500',
+          header: 'bg-emerald-50 border-b-2 border-emerald-500',
+          title: 'text-emerald-800 font-medium'
         };
       default:
         return {
-          container: 'border',
-          header: 'bg-blue-50 dark:bg-blue-900/20 border-b',
-          title: 'text-blue-700 dark:text-blue-400'
+          style: {
+            backgroundColor: '#F0F9FF',
+            borderColor: '#0EA5E9',
+            borderWidth: 1,
+            textColor: '#0C4A6E'
+          },
+          container: 'border border-sky-400',
+          header: 'bg-sky-50 border-b border-sky-400',
+          title: 'text-sky-800 font-medium'
         };
     }
-  }, [type]);
+  }, [editedType]);
+
+  // Get styling configuration
+  const typeConfig = getTypeConfig();
   
-  const typeStyle = getTypeStyle();
+  // Merge default and custom styles
+  const mergedStyle = { ...typeConfig.style, ...style };
   
   // Get primary keys or IDs
   const primaryKeys = attributes.filter(attr => attr.isPrimaryKey);
@@ -77,7 +91,11 @@ const EntityNode = ({ data, selected, id }) => {
   // Handle entity name and type update
   const handleSaveEntity = () => {
     if (editedName.trim()) {
-      updateEntity(id, { name: editedName, type: editedType });
+      updateEntity(id, { 
+        name: editedName, 
+        type: editedType,
+        style: typeConfig.style // Apply type-based styles
+      });
       setIsEditing(false);
     }
   };
@@ -90,7 +108,9 @@ const EntityNode = ({ data, selected, id }) => {
       setNewAttribute({
         name: '',
         dataType: 'String',
-        isPrimaryKey: false
+        isPrimaryKey: false,
+        isNullable: true,
+        isUnique: false
       });
       // Focus back on the input for quick consecutive additions
       if (attributeInputRef.current) {
@@ -99,14 +119,14 @@ const EntityNode = ({ data, selected, id }) => {
     }
   };
 
-  // Handle attribute deletion
-  const handleDeleteAttribute = (attributeId) => {
-    if (window.confirm("Delete this column?")) {
+  // Handle attribute deletion with confirmation
+  const handleDeleteAttribute = (attributeId, attributeName) => {
+    if (window.confirm(`Delete column "${attributeName}"?`)) {
       deleteAttribute(id, attributeId);
     }
   };
 
-  // Handle entity deletion
+  // Handle entity deletion with confirmation
   const handleDeleteEntity = (e) => {
     e.stopPropagation();
     if (window.confirm(`Delete table "${name}"?`)) {
@@ -114,30 +134,51 @@ const EntityNode = ({ data, selected, id }) => {
     }
   };
 
+  // Get data type display
+  const getDataTypeDisplay = (dataType) => {
+    const typeMap = {
+      'String': 'string',
+      'Number': 'number',
+      'Boolean': 'bool',
+      'Date': 'date',
+      'varchar': 'varchar',
+      'int': 'int',
+      'text': 'text',
+      'datetime': 'datetime'
+    };
+    
+    return typeMap[dataType] || dataType;
+  };
+
   return (
-    <div 
-      className={`rounded-md shadow-md ${typeStyle.container} ${selected ? 'ring-2 ring-blue-500' : ''}`}
-      style={{ 
-        borderColor: mergedStyle.borderColor,
-        borderWidth: `${mergedStyle.borderWidth}px`,
-        backgroundColor: mergedStyle.backgroundColor,
-        minWidth: '250px',
-        maxWidth: '320px'
-      }}
-    >
+    <TooltipProvider>
+      <div 
+        className={`rounded-lg shadow-lg ${typeConfig.container} ${selected ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
+        style={{ 
+          backgroundColor: mergedStyle.backgroundColor,
+          borderColor: mergedStyle.borderColor,
+          borderWidth: `${mergedStyle.borderWidth}px`,
+          minWidth: '250px',
+          maxWidth: '320px',
+          transition: 'all 0.2s ease'
+        }}
+        onClick={() => {
+          setSelectedNode(id);
+          setSidebarMode('entity');
+        }}
+      >
       {/* Entity header with controls */}
       <div 
-        className={`${typeStyle.header} rounded-t-md p-2 flex justify-between items-center`}
+        className={`${typeConfig.header} rounded-t-lg p-3 flex justify-between items-center`}
         style={{ 
-          borderColor: mergedStyle.borderColor,
-          borderWidth: `${mergedStyle.borderWidth}px`
+          borderColor: mergedStyle.borderColor
         }}
       >
         {isEditing ? (
           <Input 
             value={editedName}
             onChange={(e) => setEditedName(e.target.value)}
-            className="h-6 text-sm w-full mr-1"
+            className="h-7 text-sm w-full mr-1 bg-white/80"
             autoFocus
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
@@ -147,7 +188,7 @@ const EntityNode = ({ data, selected, id }) => {
           />
         ) : (
           <h3 
-            className={`truncate ${typeStyle.title} flex-1 text-center`}
+            className={`truncate ${typeConfig.title} flex-1 text-center text-sm`}
             style={{ color: mergedStyle.textColor }}
             onDoubleClick={() => setIsEditing(true)}
           >
@@ -160,105 +201,154 @@ const EntityNode = ({ data, selected, id }) => {
             <select
               value={editedType}
               onChange={(e) => setEditedType(e.target.value)}
-              className="h-6 text-xs mr-1 border rounded"
+              className="h-7 text-xs mr-1 border rounded bg-white/80"
             >
               <option value="regular">Regular</option>
               <option value="weak">Weak</option>
               <option value="associative">Junction</option>
             </select>
-            <Button 
-              size="icon" 
-              variant="ghost" 
-              className="h-6 w-6 p-0"
-              onClick={handleSaveEntity}
-            >
-              <Save className="h-3 w-3" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="h-6 w-6 p-0"
+                  onClick={handleSaveEntity}
+                >
+                  <Save className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">Save changes</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         ) : (
           <div className="flex gap-1">
-            <Button 
-              size="icon" 
-              variant="ghost" 
-              className="h-5 w-5 p-0"
-              onClick={() => setIsEditing(true)}
-            >
-              <Edit2 className="h-3 w-3" />
-            </Button>
-            <Button 
-              size="icon" 
-              variant="ghost" 
-              className="h-5 w-5 p-0 text-red-500"
-              onClick={handleDeleteEntity}
-            >
-              <Trash2 className="h-3 w-3" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="h-6 w-6 p-0 hover:bg-white/20"
+                  onClick={() => setIsEditing(true)}
+                >
+                  <Edit2 className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">Edit table</p>
+              </TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="h-6 w-6 p-0 hover:bg-red-50 text-red-500"
+                  onClick={handleDeleteEntity}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">Delete table</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         )}
       </div>
       
-      {/* Entity attributes with toggle */}
-      <div className="p-2">
+      {/* Entity attributes section */}
+      <div className="p-3 bg-white/80">
         {/* Primary keys */}
         {primaryKeys.length > 0 && (
-          <div className="space-y-1 mb-2">
+          <div className="space-y-1.5 mb-2">
             {primaryKeys.map((attr) => (
-              <div key={attr._id} className="flex items-center justify-between group">
-                <div className="flex items-center">
-                  <span className="text-xs font-medium underline mr-2">PK</span>
-                  <span 
-                    className="text-xs truncate"
-                    style={{ color: mergedStyle.textColor }}
-                  >
-                    {attr.name}
-                    <span className="text-xs text-gray-500 ml-1">
-                      ({attr.dataType})
+              <div key={attr._id} className="flex items-center justify-between group px-1 py-0.5 rounded hover:bg-gray-50">
+                <div className="flex justify-between items-center">
+                  <span className="flex items-center">
+                    <Key className="h-3 w-3 text-amber-500 mr-1" />
+                    <span 
+                      className="text-xs font-medium"
+                      style={{ color: mergedStyle.textColor }}
+                    >
+                      {attr.name}
                     </span>
                   </span>
+                  <span className="text-xs text-gray-500 ml-1.5 italic">
+                    {getDataTypeDisplay(attr.dataType)}
+                  </span>
                 </div>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 text-red-500"
-                  onClick={() => handleDeleteAttribute(attr._id)}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-500 hover:bg-red-50"
+                      onClick={() => handleDeleteAttribute(attr._id, attr.name)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">Delete column</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
             ))}
           </div>
         )}
         
-        {/* Other attributes - shown/hidden based on toggle */}
+        {/* Divider between keys and other attributes */}
+        {primaryKeys.length > 0 && normalAttributes.length > 0 && (
+          <div className="h-px bg-gray-200 my-2" />
+        )}
+        
+        {/* Regular attributes - shown/hidden based on toggle */}
         {normalAttributes.length > 0 && (
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             {(showAttributes ? normalAttributes : normalAttributes.slice(0, 3)).map((attr) => (
-              <div key={attr._id} className="flex items-center justify-between group">
-                <span 
-                  className={`text-xs truncate ${attr.isNullable ? '' : 'font-medium'} ${attr.isForeignKey ? 'italic' : ''}`}
-                  style={{ color: mergedStyle.textColor }}
-                >
-                  {attr.name}
-                  <span className="text-xs text-gray-500 ml-1">
-                    ({attr.dataType})
+              <div key={attr._id} className="flex items-center justify-between group px-1 py-0.5 rounded hover:bg-gray-50">
+                <div className="flex items-center">
+                  {attr.isForeignKey && (
+                    <Lock className="h-3 w-3 text-purple-500 mr-1" />
+                  )}
+                  <span 
+                    className={`text-xs ${attr.isNullable ? '' : 'font-medium'} ${attr.isForeignKey ? 'italic' : ''}`}
+                    style={{ color: mergedStyle.textColor }}
+                  >
+                    {attr.name}
                   </span>
-                  {attr.isUnique && <span className="text-xs text-blue-500 ml-1">U</span>}
-                  {attr.isForeignKey && <span className="text-xs text-purple-500 ml-1">FK</span>}
-                </span>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 text-red-500"
-                  onClick={() => handleDeleteAttribute(attr._id)}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
+                  <span className="text-xs text-gray-500 ml-1.5 italic">
+                    {getDataTypeDisplay(attr.dataType)}
+                  </span>
+                  {attr.isUnique && <span className="text-xs text-blue-500 ml-1">◆</span>}
+                  {!attr.isNullable && <span className="text-xs text-red-500 ml-1">*</span>}
+                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-500 hover:bg-red-50"
+                      onClick={() => handleDeleteAttribute(attr._id, attr.name)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">Delete column</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
             ))}
             
             {normalAttributes.length > 3 && (
               <button
-                className="text-xs text-blue-500 w-full text-center mt-1"
+                className="text-xs w-full text-center mt-1 py-1 rounded hover:bg-gray-50"
+                style={{ color: mergedStyle.borderColor }}
                 onClick={() => setShowAttributes(!showAttributes)}
               >
                 {showAttributes ? (
@@ -276,7 +366,7 @@ const EntityNode = ({ data, selected, id }) => {
         )}
         
         {attributes.length === 0 && (
-          <div className="text-xs text-gray-400 italic">No attributes</div>
+          <div className="text-xs text-gray-400 italic py-2 text-center">No columns defined</div>
         )}
       </div>
       
@@ -285,93 +375,123 @@ const EntityNode = ({ data, selected, id }) => {
         <PopoverTrigger asChild>
           <Button 
             variant="ghost" 
-            size="sm" 
-            className="w-full mt-1 h-6 text-xs flex items-center justify-center border-t rounded-none rounded-b-md"
+            size="sm"
+            className="w-full h-8 text-xs flex items-center justify-center border-t rounded-none rounded-b-lg"
+            style={{ 
+              borderColor: mergedStyle.borderColor,
+              color: mergedStyle.borderColor,
+              backgroundColor: mergedStyle.backgroundColor
+            }}
           >
-            <Plus className="h-3 w-3 mr-1" /> Add Column
+            <Plus className="h-3.5 w-3.5 mr-1" /> Add Column
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-72 p-2">
-          <form onSubmit={handleAddAttribute} className="space-y-2">
-            <div className="grid grid-cols-12 gap-1">
-              <div className="col-span-5">
-                <Input
-                  ref={attributeInputRef}
-                  value={newAttribute.name}
-                  onChange={(e) => setNewAttribute({...newAttribute, name: e.target.value})}
-                  placeholder="Column name"
-                  className="w-full h-7 text-xs"
+        <PopoverContent className="w-72 p-3">
+          <form onSubmit={handleAddAttribute} className="space-y-3">
+            <div className="space-y-2">
+              <Input
+                ref={attributeInputRef}
+                value={newAttribute.name}
+                onChange={(e) => setNewAttribute({...newAttribute, name: e.target.value})}
+                placeholder="Column name"
+                className="w-full h-8 text-xs"
+              />
+              
+              <div className="grid grid-cols-12 gap-2">
+                <div className="col-span-7">
+                  <select
+                    value={newAttribute.dataType}
+                    onChange={(e) => setNewAttribute({...newAttribute, dataType: e.target.value})}
+                    className="w-full p-1.5 border rounded text-xs h-8"
+                  >
+                    <option value="String">String</option>
+                    <option value="Number">Number</option>
+                    <option value="Boolean">Boolean</option>
+                    <option value="Date">Date</option>
+                    <option value="varchar">varchar</option>
+                    <option value="int">int</option>
+                    <option value="text">text</option>
+                    <option value="datetime">datetime</option>
+                  </select>
+                </div>
+                
+                <div className="col-span-5 flex space-x-1">
+                  <label className="flex items-center cursor-pointer bg-gray-50 px-2 rounded border flex-1">
+                    <input 
+                      type="checkbox" 
+                      checked={newAttribute.isPrimaryKey}
+                      onChange={(e) => setNewAttribute({...newAttribute, isPrimaryKey: e.target.checked})}
+                      className="rounded border-gray-300 h-3 w-3"
+                    />
+                    <span className="text-xs ml-1">PK</span>
+                  </label>
+                  
+                  <label className="flex items-center cursor-pointer bg-gray-50 px-2 rounded border flex-1">
+                    <input 
+                      type="checkbox" 
+                      checked={newAttribute.isUnique}
+                      onChange={(e) => setNewAttribute({...newAttribute, isUnique: e.target.checked})}
+                      className="rounded border-gray-300 h-3 w-3"
+                    />
+                    <span className="text-xs ml-1">UQ</span>
+                  </label>
+                </div>
+              </div>
+              
+              <label className="flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={!newAttribute.isNullable}
+                  onChange={(e) => setNewAttribute({...newAttribute, isNullable: !e.target.checked})}
+                  className="rounded border-gray-300 h-3 w-3"
                 />
-              </div>
-              
-              <div className="col-span-5">
-                <select
-                  value={newAttribute.dataType}
-                  onChange={(e) => setNewAttribute({...newAttribute, dataType: e.target.value})}
-                  className="w-full p-1 border rounded text-xs h-7"
-                >
-                  <option value="String">String</option>
-                  <option value="Number">Number</option>
-                  <option value="Boolean">Boolean</option>
-                  <option value="Date">Date</option>
-                  <option value="varchar">varchar</option>
-                  <option value="int">int</option>
-                  <option value="text">text</option>
-                  <option value="datetime">datetime</option>
-                </select>
-              </div>
-              
-              <div className="col-span-2 flex items-center justify-center">
-                <label className="flex items-center cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={newAttribute.isPrimaryKey}
-                    onChange={(e) => setNewAttribute({...newAttribute, isPrimaryKey: e.target.checked})}
-                    className="rounded border-gray-300 h-3 w-3"
-                  />
-                  <span className="text-xs ml-1">PK</span>
-                </label>
-              </div>
+                <span className="text-xs ml-1">Not Null</span>
+              </label>
             </div>
             
             <Button 
               type="submit" 
               size="sm"
-              className="w-full h-6 text-xs"
+              className="w-full h-7 text-xs"
               disabled={!newAttribute.name.trim()}
             >
-              Add
+              Add Column
             </Button>
           </form>
         </PopoverContent>
       </Popover>
       
-      {/* Connection handles */}
+      {/* Connection handles with styling */}
       <Handle
         type="source"
         position={Position.Right}
         id="right"
-        className="w-2 h-2 bg-blue-500 border-2 border-white"
+        className="w-3 h-3 bg-blue-500 border-2 border-white right-[-7px]"
+        style={{ borderRadius: '50%' }}
       />
       <Handle
         type="source"
         position={Position.Bottom}
         id="bottom"
-        className="w-2 h-2 bg-blue-500 border-2 border-white"
+        className="w-3 h-3 bg-blue-500 border-2 border-white bottom-[-7px]"
+        style={{ borderRadius: '50%' }}
       />
       <Handle
         type="target"
         position={Position.Left}
         id="left"
-        className="w-2 h-2 bg-blue-500 border-2 border-white"
+        className="w-3 h-3 bg-blue-500 border-2 border-white left-[-7px]"
+        style={{ borderRadius: '50%' }}
       />
       <Handle
         type="target"
         position={Position.Top}
         id="top"
-        className="w-2 h-2 bg-blue-500 border-2 border-white"
+        className="w-3 h-3 bg-blue-500 border-2 border-white top-[-7px]"
+        style={{ borderRadius: '50%' }}
       />
     </div>
+    </TooltipProvider>
   );
 };
 
