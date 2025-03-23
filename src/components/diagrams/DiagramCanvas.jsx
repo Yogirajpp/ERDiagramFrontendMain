@@ -479,13 +479,6 @@ const DiagramCanvas = () => {
                 </div>
               </Panel>
               
-              {/* Help panel */}
-              <Panel position="bottom-right" className="bg-white dark:bg-gray-900 p-2 rounded shadow mb-2 mr-2">
-                <div className="text-xs text-muted-foreground">
-                  <div>Double-click entity name to edit</div>
-                  <div>Click relationship label to edit</div>
-                </div>
-              </Panel>
             </ReactFlow>
           </div>
         </TabsContent>
